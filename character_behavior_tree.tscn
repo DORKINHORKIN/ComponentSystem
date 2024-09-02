@@ -1,0 +1,237 @@
+[gd_scene load_steps=17 format=3 uid="uid://bdmbo3jm761wc"]
+
+[ext_resource type="Script" path="res://character_references.gd" id="1_8igve"]
+[ext_resource type="Script" path="res://component.gd" id="2_dk58t"]
+[ext_resource type="Script" path="res://choice_component.gd" id="3_xolvs"]
+[ext_resource type="Script" path="res://choice_filter_component.gd" id="4_8osdt"]
+[ext_resource type="Script" path="res://check_coyote_time.gd" id="5_u1bmh"]
+[ext_resource type="Script" path="res://choice_request_component.gd" id="6_msith"]
+[ext_resource type="Script" path="res://boolean_choice_component.gd" id="7_gq7c4"]
+
+[sub_resource type="GDScript" id="GDScript_rw8yi"]
+script/source = "extends Component
+"
+
+[sub_resource type="Resource" id="Resource_5jdly"]
+resource_name = "CBTR"
+script = ExtResource("1_8igve")
+
+[sub_resource type="GDScript" id="GDScript_x07w2"]
+script/source = "extends Component
+"
+
+[sub_resource type="GDScript" id="GDScript_nk822"]
+script/source = "extends Component
+
+signal SetMoveDirection(vector:Vector2)
+
+func _component_process(delta):
+	var move_direction:Vector2
+	move_direction = Input.get_vector(&'ui_left', &'ui_right', &'ui_up', &'ui_down')
+	SetMoveDirection.emit(move_direction)
+"
+
+[sub_resource type="GDScript" id="GDScript_hw3sf"]
+script/source = "extends Component
+
+signal SendJumpPhase(phase:String)
+
+func _component_process(delta):
+	var phase:String
+	var j = \"ui_accept\"
+	phase = \"just_pressed\" if Input.is_action_just_pressed(j) \\
+	else \"just_released\" if Input.is_action_just_released(j) \\
+	else \"pressed\" if Input.is_action_pressed(j) else \"\"
+
+	SendJumpPhase.emit(phase)
+"
+
+[sub_resource type="Resource" id="Resource_awuk5"]
+resource_name = "CBTR"
+script = ExtResource("1_8igve")
+
+[sub_resource type="GDScript" id="GDScript_1w2ay"]
+script/source = "extends Component
+
+
+var on_ground = false
+var air_time:= 0.0
+
+var character_body_2D:CharacterBody2D
+
+
+func _register_reference():
+	super._register_reference()
+	character_body_2D = reference[\"character_body_2D\"]
+
+
+func _component_process(delta):
+	if character_body_2D:
+		on_ground = character_body_2D.is_on_floor()
+		air_time = (air_time+delta) if not on_ground else 0.0
+"
+
+[sub_resource type="GDScript" id="GDScript_hu4fu"]
+script/source = "extends Component
+
+
+@export var gravity:= 1000.0
+
+var character_body_2D:CharacterBody2D
+
+
+func _register_reference():
+	super._register_reference()
+	character_body_2D = reference[\"character_body_2D\"]
+
+
+func _component_process(delta):
+	if character_body_2D:
+		var vvel:float = character_body_2D.velocity.y
+		vvel = move_toward(vvel, INF, gravity * delta)
+		character_body_2D.velocity.y = vvel
+"
+
+[sub_resource type="GDScript" id="GDScript_ise3x"]
+script/source = "extends Component
+
+
+@export var speed_min:= 500.0
+@export var speed_max:= 500.0
+@export var acceleration:= 500.0
+@export var deceleration:= 500.0
+@export var instant:bool
+
+
+var direction:Vector2
+
+var character_body_2D:CharacterBody2D
+
+
+func _register_reference():
+	super._register_reference()
+	character_body_2D = reference[\"character_body_2D\"]
+
+
+func _component_process(delta):
+	if character_body_2D:
+		var move_acceleration = INF if instant \\
+				else acceleration if abs(direction.x) \\
+				else deceleration
+
+		var hspd:float = character_body_2D.velocity.x
+		var move_speed:float = clamp(abs(hspd), speed_min, speed_max)
+		hspd = move_toward(hspd, move_speed * direction.x, move_acceleration * delta)
+		character_body_2D.velocity.x = hspd
+
+func set_direction(vector:Vector2):
+	direction = vector
+"
+
+[node name="CharacterBehaviorTree" type="Node"]
+script = SubResource("GDScript_rw8yi")
+reference = SubResource("Resource_5jdly")
+self_reference = &"root"
+
+[node name="Input" type="Node" parent="."]
+script = SubResource("GDScript_x07w2")
+
+[node name="MoveDirection" type="Node" parent="Input"]
+script = SubResource("GDScript_nk822")
+
+[node name="JumpPhases" type="Node" parent="Input"]
+script = SubResource("GDScript_hw3sf")
+
+[node name="Physics" type="Node" parent="."]
+script = ExtResource("2_dk58t")
+reference = SubResource("Resource_awuk5")
+self_reference = &"physics"
+
+[node name="Grounding" type="Node" parent="Physics"]
+script = SubResource("GDScript_1w2ay")
+
+[node name="Gravity" type="Node" parent="Physics"]
+script = SubResource("GDScript_hu4fu")
+
+[node name="Move" type="Node" parent="Physics"]
+script = SubResource("GDScript_ise3x")
+
+[node name="StateMachine" type="Node" parent="."]
+script = ExtResource("3_xolvs")
+
+[node name="GroundGroup" type="Node" parent="StateMachine"]
+script = ExtResource("4_8osdt")
+
+[node name="GroundStateMachine" type="Node" parent="StateMachine/GroundGroup"]
+script = ExtResource("3_xolvs")
+
+[node name="Normal" type="Node" parent="StateMachine/GroundGroup/GroundStateMachine"]
+script = ExtResource("4_8osdt")
+
+[node name="CheckCoyoteTime" type="Node" parent="StateMachine/GroundGroup/GroundStateMachine/Normal"]
+script = ExtResource("5_u1bmh")
+
+[node name="Pass" type="Node" parent="StateMachine/GroundGroup/GroundStateMachine/Normal/CheckCoyoteTime"]
+script = ExtResource("4_8osdt")
+
+[node name="AdjiustGravity" type="Node" parent="StateMachine/GroundGroup/GroundStateMachine/Normal/CheckCoyoteTime/Pass"]
+script = ExtResource("2_dk58t")
+
+[node name="Jump" type="Node" parent="StateMachine/GroundGroup/GroundStateMachine/Normal/CheckCoyoteTime/Pass"]
+script = ExtResource("2_dk58t")
+
+[node name="SetAerialState" type="Node" parent="StateMachine/GroundGroup/GroundStateMachine/Normal/CheckCoyoteTime/Pass/Jump" node_paths=PackedStringArray("choice_component", "choice_request")]
+script = ExtResource("6_msith")
+choice_component = NodePath("../../../../../../..")
+choice_request = NodePath("../../../../../../../AerialGroup")
+
+[node name="BypassCoyoteTime" type="Node" parent="StateMachine/GroundGroup/GroundStateMachine/Normal/CheckCoyoteTime/Pass/Jump"]
+script = ExtResource("2_dk58t")
+
+[node name="ApplyVelocity" type="Node" parent="StateMachine/GroundGroup/GroundStateMachine/Normal/CheckCoyoteTime/Pass/Jump"]
+script = ExtResource("2_dk58t")
+
+[node name="Fail" type="Node" parent="StateMachine/GroundGroup/GroundStateMachine/Normal/CheckCoyoteTime"]
+script = ExtResource("4_8osdt")
+
+[node name="SetAerialState" type="Node" parent="StateMachine/GroundGroup/GroundStateMachine/Normal/CheckCoyoteTime/Fail" node_paths=PackedStringArray("choice_component", "choice_request")]
+script = ExtResource("6_msith")
+choice_component = NodePath("../../../../../..")
+choice_request = NodePath("../../../../../../AerialGroup")
+
+[node name="AerialGroup" type="Node" parent="StateMachine"]
+script = ExtResource("4_8osdt")
+
+[node name="AerialStateMachine" type="Node" parent="StateMachine/AerialGroup"]
+script = ExtResource("3_xolvs")
+
+[node name="Normal" type="Node" parent="StateMachine/AerialGroup/AerialStateMachine"]
+script = ExtResource("4_8osdt")
+
+[node name="CheckCoyoteTime" type="Node" parent="StateMachine/AerialGroup/AerialStateMachine/Normal"]
+script = ExtResource("7_gq7c4")
+
+[node name="Pass" type="Node" parent="StateMachine/AerialGroup/AerialStateMachine/Normal/CheckCoyoteTime"]
+script = ExtResource("4_8osdt")
+
+[node name="AdjiustGravity" type="Node" parent="StateMachine/AerialGroup/AerialStateMachine/Normal/CheckCoyoteTime/Pass"]
+script = ExtResource("2_dk58t")
+
+[node name="Jump" type="Node" parent="StateMachine/AerialGroup/AerialStateMachine/Normal/CheckCoyoteTime/Pass"]
+script = ExtResource("2_dk58t")
+
+[node name="SetGroundState" type="Node" parent="StateMachine/AerialGroup/AerialStateMachine/Normal/CheckCoyoteTime/Pass/Jump" node_paths=PackedStringArray("choice_component", "choice_request")]
+script = ExtResource("6_msith")
+choice_component = NodePath("../../../../../../..")
+choice_request = NodePath("../../../../../../../GroundGroup")
+
+[node name="BypassCoyoteTime" type="Node" parent="StateMachine/AerialGroup/AerialStateMachine/Normal/CheckCoyoteTime/Pass/Jump"]
+script = ExtResource("2_dk58t")
+
+[node name="ApplyVelocity" type="Node" parent="StateMachine/AerialGroup/AerialStateMachine/Normal/CheckCoyoteTime/Pass/Jump"]
+script = ExtResource("2_dk58t")
+
+[node name="Fail" type="Node" parent="StateMachine/AerialGroup/AerialStateMachine/Normal/CheckCoyoteTime"]
+script = ExtResource("4_8osdt")
+
+[connection signal="SetMoveDirection" from="Input/MoveDirection" to="Physics/Move" method="set_direction"]

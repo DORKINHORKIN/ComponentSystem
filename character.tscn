@@ -1,0 +1,68 @@
+[gd_scene load_steps=8 format=3 uid="uid://dw272grquve8b"]
+
+[ext_resource type="Script" path="res://character_references.gd" id="1_6eloj"]
+[ext_resource type="PackedScene" uid="uid://bdmbo3jm761wc" path="res://character_behavior_tree.tscn" id="1_45w2x"]
+
+[sub_resource type="GDScript" id="GDScript_t5qay"]
+script/source = "extends Node2D
+
+@export var reference:CharacterBehaviorTreeReferences
+
+func _ready():
+	if reference:
+		reference.register(\"character_root\", self)
+"
+
+[sub_resource type="Resource" id="Resource_q5hom"]
+resource_local_to_scene = true
+resource_name = "CBTR"
+script = ExtResource("1_6eloj")
+
+[sub_resource type="GDScript" id="GDScript_y3ffh"]
+script/source = "extends CharacterBody2D
+
+@export var reference:CharacterBehaviorTreeReferences
+
+func _ready():
+	if reference:
+		reference.register(\"character_body_2D\", self)
+
+func _physics_process(_delta):
+	move_and_slide()
+"
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_6nkxm"]
+
+[sub_resource type="Resource" id="Resource_36jfd"]
+resource_local_to_scene = true
+resource_name = "CBTR"
+script = ExtResource("1_6eloj")
+
+[node name="Character" type="Node2D"]
+script = SubResource("GDScript_t5qay")
+reference = SubResource("Resource_q5hom")
+
+[node name="CharacterBody2D" type="CharacterBody2D" parent="."]
+script = SubResource("GDScript_y3ffh")
+reference = SubResource("Resource_q5hom")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D"]
+shape = SubResource("CapsuleShape2D_6nkxm")
+
+[node name="CharacterBehaviorTree" parent="." instance=ExtResource("1_45w2x")]
+reference = SubResource("Resource_36jfd")
+
+[node name="Grounding" parent="CharacterBehaviorTree/Physics" index="0"]
+reference = SubResource("Resource_q5hom")
+
+[node name="Gravity" parent="CharacterBehaviorTree/Physics" index="1"]
+reference = SubResource("Resource_q5hom")
+
+[node name="Move" parent="CharacterBehaviorTree/Physics" index="2"]
+reference = SubResource("Resource_q5hom")
+
+[node name="StateMachine" parent="CharacterBehaviorTree" index="2"]
+reference = SubResource("Resource_q5hom")
+self_reference = &"state_machine"
+
+[editable path="CharacterBehaviorTree"]

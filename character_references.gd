@@ -1,0 +1,9 @@
+class_name CharacterBehaviorTreeReferences
+
+extends ComponentReference
+
+var character_root:Node2D
+var character_body_2D:CharacterBody2D
+var input:Component
+var physics:Component
+var state_machine:ChoiceComponent

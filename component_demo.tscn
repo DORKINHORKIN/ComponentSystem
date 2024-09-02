@@ -1,0 +1,48 @@
+[gd_scene load_steps=7 format=3 uid="uid://b1qowc1bxi16m"]
+
+[ext_resource type="Script" path="res://component.gd" id="1_55cds"]
+[ext_resource type="Script" path="res://choice_component.gd" id="2_uolga"]
+[ext_resource type="Script" path="res://boolean_choice_component.gd" id="3_1r53b"]
+[ext_resource type="Script" path="res://choice_request_component.gd" id="3_amshw"]
+[ext_resource type="Script" path="res://choice_filter_component.gd" id="3_geai1"]
+[ext_resource type="Script" path="res://print_component.gd" id="5_yn5x8"]
+
+[node name="ComponentDemo" type="Node"]
+script = ExtResource("1_55cds")
+
+[node name="ChoiceComponent" type="Node" parent="."]
+script = ExtResource("2_uolga")
+
+[node name="GroupComponent1" type="Node" parent="ChoiceComponent"]
+script = ExtResource("3_geai1")
+
+[node name="ChoiceRequestComponent" type="Node" parent="ChoiceComponent/GroupComponent1" node_paths=PackedStringArray("choice_component", "choice_request")]
+script = ExtResource("3_amshw")
+choice_component = NodePath("../..")
+choice_request = NodePath("../../GroupComponent2")
+
+[node name="PrintComponent" type="Node" parent="ChoiceComponent/GroupComponent1/ChoiceRequestComponent"]
+script = ExtResource("5_yn5x8")
+message = "adsa"
+
+[node name="GroupComponent2" type="Node" parent="ChoiceComponent"]
+script = ExtResource("3_geai1")
+
+[node name="BooleanChoiceComponent" type="Node" parent="ChoiceComponent/GroupComponent2"]
+script = ExtResource("3_1r53b")
+
+[node name="ChoiceFilterComponent" type="Node" parent="ChoiceComponent/GroupComponent2/BooleanChoiceComponent"]
+script = ExtResource("3_geai1")
+
+[node name="PrintPass" type="Node" parent="ChoiceComponent/GroupComponent2/BooleanChoiceComponent/ChoiceFilterComponent"]
+process_mode = 3
+script = ExtResource("5_yn5x8")
+message = "Pass"
+bypass = false
+
+[node name="ChoiceFilterComponent2" type="Node" parent="ChoiceComponent/GroupComponent2/BooleanChoiceComponent"]
+script = ExtResource("3_geai1")
+
+[node name="PrintFail" type="Node" parent="ChoiceComponent/GroupComponent2/BooleanChoiceComponent/ChoiceFilterComponent2"]
+script = ExtResource("5_yn5x8")
+message = "Fail"
